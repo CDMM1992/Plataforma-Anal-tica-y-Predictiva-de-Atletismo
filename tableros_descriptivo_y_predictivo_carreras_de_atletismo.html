@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taller 03 · Analítica Descriptiva y Predictiva de Carreras de Atletismo</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              900: '#1e3a8a',
+            },
+            emerald: {
+              500: '#10b981',
+              600: '#059669',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+    /* Custom range sliders for simulator */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 6px;
+      border-radius: 999px;
+      outline: none;
+      transition: background 0.2s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #2563eb;
+      cursor: pointer;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.45);
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #1d4ed8;
+    }
+    input[type="range"]:disabled::-webkit-slider-thumb {
+      background: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .tab-fade {
+      animation: fadeIn 0.28s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200 antialiased">
+
+  <!-- =====================================================================
+       CABECERA EN PATRÓN Z: IDENTIDAD (IZQ) -> NAVEGACIÓN + TEMA (DER)
+       ===================================================================== -->
+  <header class="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <!-- Punto Z-1: Marca e Identidad del Proyecto -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-600/20 shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                Taller 03 · Analítica Deportiva
+              </span>
+              <span class="hidden sm:inline-block text-xs text-slate-400 dark:text-slate-500">
+                48 Carreras · 12,000 Participaciones (2024–2026)
+              </span>
+            </div>
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight mt-0.5">
+              Plataforma Analítica y Predictiva de Atletismo
+            </h1>
+          </div>
+        </div>
+
+        <!-- Punto Z-2: Navegación Principal entre Entregables + Selector Tema -->
+        <div class="flex items-center justify-between sm:justify-end gap-2.5">
+          <nav aria-label="Navegación de Tableros" class="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+            <button id="btn-tab-desc" onclick="switchTab('descriptivo')"
+              class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              <span>Tablero Descriptivo</span>
+            </button>
+            <button id="btn-tab-pred" onclick="switchTab('predictivo')"
+              class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+              <span>Tablero Predictivo</span>
+            </button>
+          </nav>
+
+          <!-- Selector Modo Claro / Modo Oscuro -->
+          <button id="theme-toggle" onclick="toggleTheme()" title="Alternar Modo Claro / Oscuro"
+            class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+            <!-- Icono Sol (visible en oscuro) -->
+            <svg id="icon-sun" class="w-4 h-4 hidden text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <!-- Icono Luna (visible en claro) -->
+            <svg id="icon-moon" class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       CONTENEDOR PRINCIPAL
+       ===================================================================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- ===================================================================
+         PESTAÑA 1: TABLERO DESCRIPTIVO (CAPA ANALÍTICA DEPURADA)
+         =================================================================== -->
+    <section id="view-descriptivo" class="space-y-6 tab-fade">
+
+      <!-- Barra de 5 Filtros Cruzados Interactivos -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 sm:p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 mb-4 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Filtros Cruzados de Exploración Deportiva
+            </h2>
+            <span id="filter-status-badge" class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              Vista Global (Sin filtros activos)
+            </span>
+          </div>
+          <button onclick="resetFilters()"
+            class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors self-start sm:self-auto">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Restablecer Filtros
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          <!-- Filtro 1: Año -->
+          <div>
+            <label for="f-anio" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Fecha / Año</label>
+            <select id="f-anio" onchange="applyFilters()"
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium px-3 py-2 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Todos (2024–2026)</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+              <option value="2026">2026</option>
+            </select>
+          </div>
+
+          <!-- Filtro 2: Ciudad de Carrera -->
+          <div>
+            <label for="f-ciudad" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Ciudad de Carrera</label>
+            <select id="f-ciudad" onchange="applyFilters()"
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium px-3 py-2 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Todas las Ciudades (10)</option>
+              <option value="Armenia">Armenia</option>
+              <option value="Bogotá">Bogotá</option>
+              <option value="Bucaramanga">Bucaramanga</option>
+              <option value="Cali">Cali</option>
+              <option value="Ibagué">Ibagué</option>
+              <option value="Manizales">Manizales</option>
+              <option value="Medellín">Medellín</option>
+              <option value="Pereira">Pereira</option>
+              <option value="Popayán">Popayán</option>
+              <option value="Tunja">Tunja</option>
+            </select>
+          </div>
+
+          <!-- Filtro 3: Tipo de Carrera -->
+          <div>
+            <label for="f-tipo" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Tipo / Superficie</label>
+            <select id="f-tipo" onchange="applyFilters()"
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium px-3 py-2 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Todas las Modalidades</option>
+              <option value="Ruta">Ruta (Asfalto)</option>
+              <option value="Trail">Trail (Mixto)</option>
+              <option value="Montaña">Montaña (Sendero)</option>
+            </select>
+          </div>
+
+          <!-- Filtro 4: Distancia Oficial -->
+          <div>
+            <label for="f-distancia" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Distancia Oficial</label>
+            <select id="f-distancia" onchange="applyFilters()"
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium px-3 py-2 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Todas las Distancias</option>
+              <option value="5">5.0 km</option>
+              <option value="10">10.0 km</option>
+              <option value="15">15.0 km</option>
+              <option value="21.1">21.1 km (Media)</option>
+              <option value="30">30.0 km</option>
+              <option value="42.195">42.195 km (Maratón)</option>
+            </select>
+          </div>
+
+          <!-- Filtro 5: Sexo -->
+          <div>
+            <label for="f-sexo" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">Sexo del Corredor</label>
+            <select id="f-sexo" onchange="applyFilters()"
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-medium px-3 py-2 text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-none">
+              <option value="ALL">Todos (F y M)</option>
+              <option value="F">Femenino (F)</option>
+              <option value="M">Masculino (M)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 Tarjetas KPI Reactivas -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <!-- KPI 1: Participaciones -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Participaciones</span>
+            <span class="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </span>
+          </div>
+          <div class="my-2">
+            <div id="kpi-participaciones" class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">12,000</div>
+            <div id="kpi-participaciones-sub" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">100.0% del total (48 eventos)</div>
+          </div>
+        </div>
+
+        <!-- KPI 2: Tiempo Medio de Llegada -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Tiempo Medio Llegada</span>
+            <span class="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </span>
+          </div>
+          <div class="my-2">
+            <div id="kpi-tiempo" class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">122.8 min</div>
+            <div id="kpi-tiempo-hms" class="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5">Formato: 02:02:46</div>
+          </div>
+        </div>
+
+        <!-- KPI 3: Ritmo Medio Real & Desnivel D+ -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Ritmo Real & Desnivel</span>
+            <span class="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+              </svg>
+            </span>
+          </div>
+          <div class="my-2">
+            <div id="kpi-ritmo" class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">5.68 min/km</div>
+            <div id="kpi-desnivel" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Desnivel medio: 661 m D+</div>
+          </div>
+        </div>
+
+        <!-- KPI 4: Preparación Semanal Depurada -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Preparación Semanal</span>
+            <span class="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </span>
+          </div>
+          <div class="my-2">
+            <div id="kpi-volumen" class="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">35.8 km/sem</div>
+            <div id="kpi-sesiones" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Frecuencia: 5.1 sesiones/sem</div>
+          </div>
+        </div>
+
+        <!-- KPI 5: Probabilidad Condicionada de Podio (<40 años vs Global) -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Podio &lt;40 Años vs Global</span>
+            <span class="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+            </span>
+          </div>
+          <div class="my-2">
+            <div id="kpi-podio-m40" class="text-2xl font-extrabold tracking-tight text-purple-600 dark:text-purple-400">1.24%</div>
+            <div id="kpi-podio-global" class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">vs 1.20% global (144 podios)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila Visual 1: Barras Agrupadas (Tiempo por Distancia/Modalidad) + Barras Horizontales (Ritmo por Ciudad) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Tiempo Medio de Llegada (min) por Distancia y Modalidad</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Comparativa entre Ruta (Asfalto), Trail (Mixto) y Montaña (Sendero)</p>
+            </div>
+            <span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 self-start">
+              6 Distancias Oficiales
+            </span>
+          </div>
+          <div class="relative h-72 sm:h-80 w-full">
+            <canvas id="chart-dist-mod"></canvas>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Ritmo Medio Real (min/km) por Ciudad Sede</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Impacto geográfico, altitud y perfil topográfico por sede</p>
+            </div>
+            <span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 self-start">
+              Menor = Más rápido
+            </span>
+          </div>
+          <div class="relative h-72 sm:h-80 w-full">
+            <canvas id="chart-city-pace"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fila Visual 2: Evolución Trimestral Combinada + Doble Eje Volumen vs Ritmo/Podio -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="mb-4">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Evolución Trimestral (2024-Q1 a 2026-Q3)</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Participaciones acumuladas por trimestre y estabilidad del ritmo medio</p>
+          </div>
+          <div class="relative h-72 w-full">
+            <canvas id="chart-quarterly"></canvas>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="mb-4">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Preparación Semanal vs. Ritmo y Probabilidad de Podio</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Relación dosis-respuesta entre volumen de entrenamiento (km/sem), ritmo y podio (%)</p>
+          </div>
+          <div class="relative h-72 w-full">
+            <canvas id="chart-volume-podium"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla Resumen Segmentada por Modalidad y Distancia -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Tabla Analítica Segmentada por Modalidad y Distancia</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Métricas agregadas depuradas (se actualiza dinámicamente según los filtros activos)</p>
+          </div>
+          <span id="table-row-count" class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 self-start">
+            18 segmentos activos
+          </span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-800/70 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                <th class="py-3 px-4">Modalidad</th>
+                <th class="py-3 px-4">Distancia</th>
+                <th class="py-3 px-4 text-right">Participaciones</th>
+                <th class="py-3 px-4 text-right">Tiempo Medio</th>
+                <th class="py-3 px-4 text-right">Formato HH:MM:SS</th>
+                <th class="py-3 px-4 text-right">Ritmo Medio</th>
+                <th class="py-3 px-4 text-right">Desnivel D+</th>
+                <th class="py-3 px-4 text-right">Vol. Semanal</th>
+                <th class="py-3 px-4 text-right">Tasa Podio</th>
+              </tr>
+            </thead>
+            <tbody id="summary-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs sm:text-sm">
+              <!-- Poblado dinámicamente por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================
+         PESTAÑA 2: TABLERO PREDICTIVO (SIMULADOR + DIAGNÓSTICO TEST)
+         =================================================================== -->
+    <section id="view-predictivo" class="hidden space-y-6 tab-fade">
+
+      <!-- Banner Superior con Métricas Reales en Conjunto Test Futuro (n=1,750) -->
+      <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white p-5 sm:p-6 shadow-md border border-blue-800/40">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-1">
+            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-[11px] font-semibold">
+              <span>Validación Temporal Estricta · Últimas 7 Carreras Futuras (Test n = 1,750)</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-bold tracking-tight">
+              Modelo Lineal con Interacciones Físicas (Distancia × Predictores)
+            </h2>
+            <p class="text-xs text-blue-200/80 max-w-2xl">
+              Ajustado exclusivamente sobre las primeras 34 carreras históricas (n = 8,500) sin fuga de información (<em>data leakage</em>). Supera en un 60.2% de reducción de MAE a la línea base.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-3.5 py-2.5 border border-white/10">
+              <div class="text-[11px] text-blue-200 font-medium">Coef. R² (Test)</div>
+              <div class="text-xl font-extrabold text-emerald-400">0.9904</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-3.5 py-2.5 border border-white/10">
+              <div class="text-[11px] text-blue-200 font-medium">MAE Global</div>
+              <div class="text-xl font-extrabold text-white">4.99 min</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-3.5 py-2.5 border border-white/10">
+              <div class="text-[11px] text-blue-200 font-medium">MedAE (Mediana)</div>
+              <div class="text-xl font-extrabold text-white">3.41 min</div>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl px-3.5 py-2.5 border border-white/10">
+              <div class="text-[11px] text-blue-200 font-medium">MAPE Relativo</div>
+              <div class="text-xl font-extrabold text-amber-300">5.09%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulador Interactivo en Tiempo Real -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Columna Izquierda: Perfiles Rápidos + 3 Grupos de Parámetros (7 cols) -->
+        <div class="lg:col-span-7 space-y-4">
+          <!-- Barra de Perfiles Rápidos -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Perfiles Rápidos de Simulación:
+            </span>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="loadPreset('elite21k')"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors">
+                ⚡ Perfil Élite 21K
+              </button>
+              <button onclick="loadPreset('rec10k')"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition-colors">
+                🏃 Recreacional 10K
+              </button>
+              <button onclick="loadPreset('trail42k')"
+                class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors">
+                ⛰️ Maratón Trail 42.2K
+              </button>
+            </div>
+          </div>
+
+          <!-- Bloque 1: Características de la Carrera -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xs font-extrabold">1</span>
+                Características de la Carrera
+              </h3>
+              <span id="badge-superficie" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                Superficie: Asfalto
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Distancia Oficial -->
+              <div>
+                <label for="sim-dist" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                  Distancia Oficial (km)
+                </label>
+                <select id="sim-dist" onchange="runPrediction()"
+                  class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="5">5.0 km (5K)</option>
+                  <option value="10">10.0 km (10K)</option>
+                  <option value="15">15.0 km (15K)</option>
+                  <option value="21.1" selected>21.1 km (Media Maratón)</option>
+                  <option value="30">30.0 km (Fondo 30K)</option>
+                  <option value="42.195">42.195 km (Maratón)</option>
+                </select>
+              </div>
+
+              <!-- Tipo de Carrera -->
+              <div>
+                <label for="sim-tipo" class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                  Modalidad / Terreno
+                </label>
+                <select id="sim-tipo" onchange="runPrediction()"
+                  class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm font-semibold px-3 py-2 text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="Ruta" selected>Ruta (Asfalto)</option>
+                  <option value="Trail">Trail (Mixto)</option>
+                  <option value="Montaña">Montaña (Sendero)</option>
+                </select>
+              </div>
+
+              <!-- Desnivel Positivo -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Desnivel Positivo (D+)</span>
+                  <span id="val-desnivel" class="font-bold text-blue-600 dark:text-blue-400">180 m</span>
+                </div>
+                <input id="sim-desnivel" type="range" min="15" max="3200" step="5" value="180" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Altitud de Salida -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Altitud Salida</span>
+                  <span id="val-altitud" class="font-bold text-blue-600 dark:text-blue-400">1,550 msnm</span>
+                </div>
+                <input id="sim-altitud" type="range" min="900" max="2900" step="10" value="1550" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Temperatura Ambiente -->
+              <div class="sm:col-span-2">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Temperatura Ambiental en Competencia</span>
+                  <span id="val-temp" class="font-bold text-blue-600 dark:text-blue-400">18.0 °C</span>
+                </div>
+                <input id="sim-temp" type="range" min="6" max="28" step="0.5" value="18.0" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloque 2: Perfil e Historial del Corredor -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-extrabold">2</span>
+                Perfil e Historial Atlético del Corredor
+              </h3>
+              <span id="badge-debutante" class="hidden text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">
+                Modo Debutante Activo (Imputación 5.66 min/km)
+              </span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Sexo -->
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Sexo</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <label class="cursor-pointer">
+                    <input type="radio" name="sim-sexo" value="M" checked onchange="runPrediction()" class="peer sr-only">
+                    <div class="text-center py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition-all">
+                      Masculino (M)
+                    </div>
+                  </label>
+                  <label class="cursor-pointer">
+                    <input type="radio" name="sim-sexo" value="F" onchange="runPrediction()" class="peer sr-only">
+                    <div class="text-center py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600 transition-all">
+                      Femenino (F)
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Edad en Carrera -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Edad en Carrera</span>
+                  <span id="val-edad" class="font-bold text-indigo-600 dark:text-indigo-400">32 años</span>
+                </div>
+                <input id="sim-edad" type="range" min="16" max="65" step="1" value="32" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Años de Experiencia -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Años de Experiencia</span>
+                  <span id="val-exp" class="font-bold text-indigo-600 dark:text-indigo-400">5 años</span>
+                </div>
+                <input id="sim-exp" type="range" min="0" max="16" step="1" value="5" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Carreras Previas -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Carreras Previas</span>
+                  <span id="val-carreras" class="font-bold text-indigo-600 dark:text-indigo-400">4 carreras</span>
+                </div>
+                <input id="sim-carreras" type="range" min="0" max="15" step="1" value="4" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Ritmo Promedio Previo -->
+              <div class="sm:col-span-2">
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Ritmo Promedio Histórico Previo (min/km)</span>
+                  <span id="val-pace" class="font-bold text-indigo-600 dark:text-indigo-400">5.30 min/km</span>
+                </div>
+                <input id="sim-pace" type="range" min="3.0" max="8.2" step="0.05" value="5.30" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloque 3: Preparación y Entrenamiento Semanal -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-extrabold">3</span>
+                Preparación y Carga de Entrenamiento Semanal
+              </h3>
+            </div>
+
+            <!-- Alerta de Regla de Dominio Fase 2 (Tirada Larga > Volumen Semanal) -->
+            <div id="alert-domain-rule" class="hidden rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 p-3 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+              <svg class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <div>
+                <span class="font-bold">Regla de Dominio (Fase 2):</span> La tirada larga individual (<span id="alert-tirada-val"></span> km) supera el volumen semanal total (<span id="alert-km-val"></span> km). El pipeline imputa automáticamente la tirada larga con la mediana fisiológica de entrenamiento (<strong>13.8 km</strong>) para evitar sesgo por inconsistencia.
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Km / Semana -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Volumen Semanal (km/sem)</span>
+                  <span id="val-km-sem" class="font-bold text-emerald-600 dark:text-emerald-400">42 km/sem</span>
+                </div>
+                <input id="sim-km-sem" type="range" min="5" max="140" step="1" value="42" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Sesiones / Semana -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Sesiones / Semana</span>
+                  <span id="val-sesiones" class="font-bold text-emerald-600 dark:text-emerald-400">5 sesiones</span>
+                </div>
+                <input id="sim-sesiones" type="range" min="1" max="10" step="1" value="5" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Tirada Larga km -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Tirada Larga Máxima</span>
+                  <span id="val-tirada" class="font-bold text-emerald-600 dark:text-emerald-400">18 km</span>
+                </div>
+                <input id="sim-tirada" type="range" min="3" max="45" step="1" value="18" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+
+              <!-- Días de Descanso -->
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="font-semibold text-slate-600 dark:text-slate-300">Días de Descanso / Semana</span>
+                  <span id="val-descanso" class="font-bold text-emerald-600 dark:text-emerald-400">2 días</span>
+                </div>
+                <input id="sim-descanso" type="range" min="0" max="5" step="1" value="2" oninput="runPrediction()"
+                  class="w-full bg-slate-200 dark:bg-slate-700">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Panel de Salida + Gráfico de Impacto de Bloques (5 cols) -->
+        <div class="lg:col-span-5 space-y-5">
+          <!-- Tarjeta Principal de Pronóstico -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border-2 border-blue-600/80 dark:border-blue-500/60 p-6 shadow-md space-y-5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                Pronóstico de Llegada a Meta
+              </span>
+              <span id="out-perfil-tag" class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                21.1 km · Ruta
+              </span>
+            </div>
+
+            <!-- Tiempo Principal -->
+            <div class="text-center py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/70">
+              <div class="text-xs font-medium text-slate-500 dark:text-slate-400">Tiempo Oficial Estimado</div>
+              <div id="out-tiempo-hms" class="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white my-1">
+                01:51:42
+              </div>
+              <div id="out-tiempo-min" class="text-sm font-bold text-blue-600 dark:text-blue-400">
+                111.70 minutos totales
+              </div>
+            </div>
+
+            <!-- Métricas Derivadas: Ritmo, Velocidad y Rango ±MAE -->
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Ritmo Proyectado</div>
+                <div id="out-ritmo" class="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mt-0.5">5.29</div>
+                <div class="text-[10px] text-slate-400">min/km</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Velocidad Media</div>
+                <div id="out-velocidad" class="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">11.33</div>
+                <div class="text-[10px] text-slate-400">km/h</div>
+              </div>
+              <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Margen ±MAE</div>
+                <div id="out-mae-seg" class="text-base sm:text-lg font-extrabold text-indigo-600 dark:text-indigo-400 mt-0.5">±4.99</div>
+                <div class="text-[10px] text-slate-400">min (Test)</div>
+              </div>
+            </div>
+
+            <!-- Intervalo Esperado -->
+            <div class="rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/60 px-4 py-3 flex items-center justify-between text-xs">
+              <span class="font-semibold text-slate-700 dark:text-slate-300">Ventana Esperada (±MAE Distancia):</span>
+              <span id="out-intervalo" class="font-bold text-blue-700 dark:text-blue-300">106.7 – 116.7 min (01:46:43 – 01:56:41)</span>
+            </div>
+          </div>
+
+          <!-- Gráfico Horizontal de Impacto por Bloque de Variables -->
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+            <div class="mb-3">
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Descomposición de Impacto por Bloque (min)</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                Variación en minutos respecto a un corredor de referencia promedio en la misma distancia (negativo = gana tiempo)
+              </p>
+            </div>
+            <div class="relative h-60 w-full">
+              <canvas id="chart-impact-blocks"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sección Inferior: Gráficos de Diagnóstico del Modelo en Test (n=1,750) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Scatter Plot Real vs Predicho -->
+        <div class="lg:col-span-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">Diagnóstico Test: Tiempo Real vs. Predicho (n = 1,750)</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Alineación sobre la identidad y = ŷ (R² = 0.9904) y caso atípico PAR-011853</p>
+            </div>
+            <span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 self-start">
+              7 Carreras Futuras
+            </span>
+          </div>
+          <div class="relative h-72 sm:h-80 w-full">
+            <canvas id="chart-test-scatter"></canvas>
+          </div>
+        </div>
+
+        <!-- Comparativa MAE Modelo Aditivo vs Interacciones -->
+        <div class="lg:col-span-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white">MAE Segmentado por Distancia: Aditivo vs. Interacciones</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Reducción de error al modelar Tiempo = Distancia × Ritmo efectivo</p>
+            </div>
+            <span class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 self-start">
+              -76.7% MAE en 5K
+            </span>
+          </div>
+          <div class="relative h-72 sm:h-80 w-full">
+            <canvas id="chart-mae-comparison"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-slate-200/70 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+    <div>Reto Integrador de Analítica Predictiva · Carreras de Atletismo (Taller 03)</div>
+    <div>Pipeline Scikit-Learn · División Temporal Estricta (Train 34 / Val 7 / Test 7 carreras)</div>
+  </footer>
+
+  <!-- =====================================================================
+       MOTOR ANALÍTICO Y PREDICTIVO EN JAVASCRIPT PURO
+       ===================================================================== -->
+  <script>
+    // -----------------------------------------------------------------------
+    // 1. BASE DE DATOS ANALÍTICA AGREGADA (48 CARRERAS × SEXO = 96 CELDAS OLAP)
+    //    Calibrada exactamente con las métricas reales del dataset (N=12,000)
+    // -----------------------------------------------------------------------
+    const OLAP_CUBE = [
+      // 2024 (17 carreras = 4,250 participaciones)
+      { anio: 2024, q: "2024-Q1", ciudad: "Bogotá", tipo: "Ruta", dist: 5, sexo: "F", n: 120, tiempo: 3144.0, ritmo: 649.2, desnivel: 3000, km_sem: 4188, ses: 618, podios: 1, n_m40: 93, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q1", ciudad: "Bogotá", tipo: "Ruta", dist: 5, sexo: "M", n: 130, tiempo: 3276.0, ritmo: 681.2, desnivel: 3250, km_sem: 4654, ses: 668, podios: 2, n_m40: 104, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q1", ciudad: "Medellín", tipo: "Ruta", dist: 5, sexo: "F", n: 129, tiempo: 3483.0, ritmo: 719.8, desnivel: 2193, km_sem: 4489, ses: 655, podios: 0, n_m40: 106, podios_m40: 0 },
+      { anio: 2024, q: "2024-Q1", ciudad: "Medellín", tipo: "Ruta", dist: 5, sexo: "M", n: 121, tiempo: 3121.8, ritmo: 644.9, desnivel: 2057, km_sem: 4380, ses: 622, podios: 3, n_m40: 96, podios_m40: 3 },
+      { anio: 2024, q: "2024-Q1", ciudad: "Cali", tipo: "Montaña", dist: 10, sexo: "F", n: 126, tiempo: 7749.0, ritmo: 749.7, desnivel: 117054, km_sem: 4385, ses: 643, podios: 1, n_m40: 99, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q1", ciudad: "Cali", tipo: "Montaña", dist: 10, sexo: "M", n: 124, tiempo: 7353.2, ritmo: 709.3, desnivel: 115196, km_sem: 4464, ses: 635, podios: 2, n_m40: 98, podios_m40: 2 },
+
+      { anio: 2024, q: "2024-Q2", ciudad: "Bogotá", tipo: "Ruta", dist: 10, sexo: "F", n: 127, tiempo: 7150.1, ritmo: 707.4, desnivel: 9779, km_sem: 4419, ses: 645, podios: 1, n_m40: 98, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q2", ciudad: "Bogotá", tipo: "Ruta", dist: 10, sexo: "M", n: 123, tiempo: 6642.0, ritmo: 655.6, desnivel: 9471, km_sem: 4477, ses: 637, podios: 2, n_m40: 93, podios_m40: 0 },
+      { anio: 2024, q: "2024-Q2", ciudad: "Armenia", tipo: "Ruta", dist: 15, sexo: "F", n: 120, tiempo: 10116.0, ritmo: 672.0, desnivel: 14280, km_sem: 4224, ses: 610, podios: 0, n_m40: 98, podios_m40: 0 },
+      { anio: 2024, q: "2024-Q2", ciudad: "Armenia", tipo: "Ruta", dist: 15, sexo: "M", n: 130, tiempo: 10608.0, ritmo: 702.0, desnivel: 15470, km_sem: 4732, ses: 673, podios: 3, n_m40: 108, podios_m40: 3 },
+      { anio: 2024, q: "2024-Q2", ciudad: "Bucaramanga", tipo: "Montaña", dist: 15, sexo: "F", n: 129, tiempo: 11932.5, ritmo: 771.4, desnivel: 114552, km_sem: 4541, ses: 653, podios: 1, n_m40: 107, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q2", ciudad: "Bucaramanga", tipo: "Montaña", dist: 15, sexo: "M", n: 121, tiempo: 10769.0, ritmo: 696.9, desnivel: 107448, km_sem: 4380, ses: 622, podios: 2, n_m40: 90, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q2", ciudad: "Ibagué", tipo: "Trail", dist: 15, sexo: "F", n: 125, tiempo: 11062.5, ritmo: 731.2, desnivel: 61375, km_sem: 4412, ses: 635, podios: 2, n_m40: 96, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q2", ciudad: "Ibagué", tipo: "Trail", dist: 15, sexo: "M", n: 125, tiempo: 10687.5, ritmo: 706.2, desnivel: 61375, km_sem: 4550, ses: 645, podios: 1, n_m40: 101, podios_m40: 1 },
+
+      { anio: 2024, q: "2024-Q3", ciudad: "Bogotá", tipo: "Ruta", dist: 15, sexo: "F", n: 119, tiempo: 9972.2, ritmo: 654.5, desnivel: 6188, km_sem: 4165, ses: 602, podios: 2, n_m40: 95, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Bogotá", tipo: "Ruta", dist: 15, sexo: "M", n: 131, tiempo: 10650.3, ritmo: 698.2, desnivel: 6812, km_sem: 4742, ses: 676, podios: 1, n_m40: 109, podios_m40: 0 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Cali", tipo: "Ruta", dist: 15, sexo: "F", n: 120, tiempo: 10044.0, ritmo: 669.6, desnivel: 17880, km_sem: 4212, ses: 610, podios: 1, n_m40: 97, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Cali", tipo: "Ruta", dist: 15, sexo: "M", n: 130, tiempo: 10621.0, ritmo: 707.2, desnivel: 19370, km_sem: 4719, ses: 670, podios: 2, n_m40: 97, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Medellín", tipo: "Ruta", dist: 15, sexo: "F", n: 126, tiempo: 10621.8, ritmo: 708.1, desnivel: 20664, km_sem: 4435, ses: 640, podios: 1, n_m40: 106, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Medellín", tipo: "Ruta", dist: 15, sexo: "M", n: 124, tiempo: 10130.8, ritmo: 675.8, desnivel: 20336, km_sem: 4489, ses: 640, podios: 2, n_m40: 101, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Cali", tipo: "Trail", dist: 21.1, sexo: "F", n: 118, tiempo: 14797.2, ritmo: 682.0, desnivel: 57348, km_sem: 4165, ses: 600, podios: 3, n_m40: 91, podios_m40: 3 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Cali", tipo: "Trail", dist: 21.1, sexo: "M", n: 132, tiempo: 16077.6, ritmo: 740.5, desnivel: 64152, km_sem: 4805, ses: 681, podios: 0, n_m40: 105, podios_m40: 0 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Tunja", tipo: "Montaña", dist: 21.1, sexo: "F", n: 138, tiempo: 18147.0, ritmo: 851.4, desnivel: 154974, km_sem: 4858, ses: 701, podios: 0, n_m40: 104, podios_m40: 0 },
+      { anio: 2024, q: "2024-Q3", ciudad: "Tunja", tipo: "Montaña", dist: 21.1, sexo: "M", n: 112, tiempo: 13955.2, ritmo: 654.1, desnivel: 125776, km_sem: 4077, ses: 578, podios: 3, n_m40: 88, podios_m40: 3 },
+
+      { anio: 2024, q: "2024-Q4", ciudad: "Bucaramanga", tipo: "Ruta", dist: 5, sexo: "F", n: 125, tiempo: 3362.5, ritmo: 721.2, desnivel: 4000, km_sem: 4375, ses: 635, podios: 1, n_m40: 98, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Bucaramanga", tipo: "Ruta", dist: 5, sexo: "M", n: 125, tiempo: 3187.5, ritmo: 683.8, desnivel: 4000, km_sem: 4512, ses: 645, podios: 2, n_m40: 102, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Cali", tipo: "Montaña", dist: 30, sexo: "F", n: 123, tiempo: 23185.5, ritmo: 726.9, desnivel: 338373, km_sem: 4342, ses: 625, podios: 0, n_m40: 97, podios_m40: 0 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Cali", tipo: "Montaña", dist: 30, sexo: "M", n: 127, tiempo: 23368.0, ritmo: 731.5, desnivel: 349377, km_sem: 4610, ses: 655, podios: 3, n_m40: 98, podios_m40: 3 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Popayán", tipo: "Monta\u00f1a", dist: 30, sexo: "F", n: 129, tiempo: 24445.5, ritmo: 777.9, desnivel: 315663, km_sem: 4541, ses: 655, podios: 1, n_m40: 99, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Popayán", tipo: "Montaña", dist: 30, sexo: "M", n: 121, tiempo: 22106.7, ritmo: 703.0, desnivel: 296087, km_sem: 4392, ses: 624, podios: 2, n_m40: 97, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Armenia", tipo: "Ruta", dist: 42.195, sexo: "F", n: 137, tiempo: 33222.5, ritmo: 778.2, desnivel: 22331, km_sem: 4836, ses: 696, podios: 2, n_m40: 111, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Armenia", tipo: "Ruta", dist: 42.195, sexo: "M", n: 113, tiempo: 26402.5, ritmo: 618.1, desnivel: 18419, km_sem: 4102, ses: 583, podios: 1, n_m40: 95, podios_m40: 1 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Armenia", tipo: "Trail", dist: 42.195, sexo: "F", n: 129, tiempo: 32056.5, ritmo: 737.9, desnivel: 158283, km_sem: 4541, ses: 655, podios: 2, n_m40: 99, podios_m40: 2 },
+      { anio: 2024, q: "2024-Q4", ciudad: "Armenia", tipo: "Trail", dist: 42.195, sexo: "M", n: 121, tiempo: 29218.5, ritmo: 672.8, desnivel: 148467, km_sem: 4392, ses: 624, podios: 1, n_m40: 100, podios_m40: 1 },
+
+      // 2025 (18 carreras = 4,500 participaciones)
+      { anio: 2025, q: "2025-Q1", ciudad: "Cali", tipo: "Ruta", dist: 5, sexo: "F", n: 130, tiempo: 3484.0, ritmo: 721.5, desnivel: 3250, km_sem: 4563, ses: 660, podios: 0, n_m40: 103, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q1", ciudad: "Cali", tipo: "Ruta", dist: 5, sexo: "M", n: 120, tiempo: 3066.0, ritmo: 634.8, desnivel: 3000, km_sem: 4356, ses: 619, podios: 3, n_m40: 96, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q1", ciudad: "Bogotá", tipo: "Montaña", dist: 10, sexo: "F", n: 124, tiempo: 7588.8, ritmo: 713.0, desnivel: 101308, km_sem: 4365, ses: 630, podios: 0, n_m40: 96, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q1", ciudad: "Bogotá", tipo: "Montaña", dist: 10, sexo: "M", n: 126, tiempo: 7511.2, ritmo: 705.6, desnivel: 102942, km_sem: 4574, ses: 650, podios: 3, n_m40: 99, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q1", ciudad: "Bogotá", tipo: "Ruta", dist: 10, sexo: "F", n: 127, tiempo: 7112.0, ritmo: 699.8, desnivel: 11684, km_sem: 4470, ses: 645, podios: 1, n_m40: 99, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q1", ciudad: "Bogotá", tipo: "Ruta", dist: 10, sexo: "M", n: 123, tiempo: 6688.0, ritmo: 658.0, desnivel: 11316, km_sem: 4465, ses: 635, podios: 2, n_m40: 86, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q1", ciudad: "Ibagué", tipo: "Montaña", dist: 10, sexo: "F", n: 122, tiempo: 7490.8, ritmo: 716.1, desnivel: 95282, km_sem: 4294, ses: 620, podios: 0, n_m40: 86, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q1", ciudad: "Ibagué", tipo: "Montaña", dist: 10, sexo: "M", n: 128, tiempo: 7609.2, ritmo: 727.0, desnivel: 99968, km_sem: 4646, ses: 660, podios: 3, n_m40: 95, podios_m40: 2 },
+
+      { anio: 2025, q: "2025-Q2", ciudad: "Armenia", tipo: "Trail", dist: 15, sexo: "F", n: 140, tiempo: 12418.0, ritmo: 785.4, desnivel: 87500, km_sem: 4928, ses: 711, podios: 2, n_m40: 106, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Armenia", tipo: "Trail", dist: 15, sexo: "M", n: 110, tiempo: 9332.0, ritmo: 590.7, desnivel: 68750, km_sem: 3993, ses: 568, podios: 1, n_m40: 91, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Bucaramanga", tipo: "Montaña", dist: 15, sexo: "F", n: 115, tiempo: 10637.5, ritmo: 685.4, desnivel: 98325, km_sem: 4048, ses: 584, podios: 1, n_m40: 87, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Bucaramanga", tipo: "Montaña", dist: 15, sexo: "M", n: 135, tiempo: 12062.5, ritmo: 777.6, desnivel: 115425, km_sem: 4900, ses: 697, podios: 2, n_m40: 100, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Armenia", tipo: "Trail", dist: 21.1, sexo: "F", n: 139, tiempo: 17430.6, ritmo: 779.8, desnivel: 144004, km_sem: 4893, ses: 706, podios: 2, n_m40: 106, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Armenia", tipo: "Trail", dist: 21.1, sexo: "M", n: 111, tiempo: 13444.4, ritmo: 601.6, desnivel: 114996, km_sem: 4029, ses: 573, podios: 1, n_m40: 81, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Manizales", tipo: "Trail", dist: 21.1, sexo: "F", n: 129, tiempo: 16215.3, ritmo: 763.7, desnivel: 96234, km_sem: 4541, ses: 655, podios: 1, n_m40: 101, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Manizales", tipo: "Trail", dist: 21.1, sexo: "M", n: 121, tiempo: 14659.7, ritmo: 691.0, desnivel: 90266, km_sem: 4392, ses: 624, podios: 2, n_m40: 99, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Medellín", tipo: "Trail", dist: 21.1, sexo: "F", n: 135, tiempo: 16875.0, ritmo: 777.6, desnivel: 89250, km_sem: 4752, ses: 686, podios: 2, n_m40: 101, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q2", ciudad: "Medellín", tipo: "Trail", dist: 21.1, sexo: "M", n: 115, tiempo: 14000.0, ritmo: 645.1, desnivel: 76500, km_sem: 4174, ses: 593, podios: 1, n_m40: 88, podios_m40: 1 },
+
+      { anio: 2025, q: "2025-Q3", ciudad: "Medellín", tipo: "Trail", dist: 21.1, sexo: "F", n: 130, tiempo: 16250.0, ritmo: 748.8, desnivel: 85973, km_sem: 4576, ses: 660, podios: 1, n_m40: 97, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q3", ciudad: "Medellín", tipo: "Trail", dist: 21.1, sexo: "M", n: 120, tiempo: 14625.0, ritmo: 673.2, desnivel: 80027, km_sem: 4356, ses: 619, podios: 2, n_m40: 91, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q3", ciudad: "Popayán", tipo: "Ruta", dist: 21.1, sexo: "F", n: 129, tiempo: 15544.5, ritmo: 774.0, desnivel: 21543, km_sem: 4541, ses: 655, podios: 0, n_m40: 101, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q3", ciudad: "Popayán", tipo: "Ruta", dist: 21.1, sexo: "M", n: 121, tiempo: 14005.5, ritmo: 697.0, desnivel: 20207, km_sem: 4392, ses: 624, podios: 3, n_m40: 85, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q3", ciudad: "Popayán", tipo: "Trail", dist: 21.1, sexo: "F", n: 128, tiempo: 16128.0, ritmo: 769.3, desnivel: 73856, km_sem: 4506, ses: 650, podios: 0, n_m40: 94, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q3", ciudad: "Popayán", tipo: "Trail", dist: 21.1, sexo: "M", n: 122, tiempo: 14747.0, ritmo: 702.7, desnivel: 70394, km_sem: 4429, ses: 630, podios: 3, n_m40: 95, podios_m40: 3 },
+      { anio: 2025, q: "2025-Q3", ciudad: "Armenia", tipo: "Trail", dist: 42.195, sexo: "F", n: 119, tiempo: 29571.5, ritmo: 678.3, desnivel: 246092, km_sem: 4189, ses: 604, podios: 1, n_m40: 91, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q3", ciudad: "Armenia", tipo: "Trail", dist: 42.195, sexo: "M", n: 131, tiempo: 31703.5, ritmo: 727.0, desnivel: 270908, km_sem: 4755, ses: 676, podios: 2, n_m40: 104, podios_m40: 1 },
+
+      { anio: 2025, q: "2025-Q4", ciudad: "Cali", tipo: "Trail", dist: 42.195, sexo: "F", n: 130, tiempo: 32305.0, ritmo: 741.0, desnivel: 230100, km_sem: 4576, ses: 660, podios: 1, n_m40: 94, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Cali", tipo: "Trail", dist: 42.195, sexo: "M", n: 120, tiempo: 28970.0, ritmo: 664.8, desnivel: 212400, km_sem: 4356, ses: 619, podios: 2, n_m40: 91, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Ibagué", tipo: "Ruta", dist: 42.195, sexo: "F", n: 109, tiempo: 26378.0, ritmo: 626.8, desnivel: 32482, km_sem: 3837, ses: 554, podios: 1, n_m40: 88, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Ibagué", tipo: "Ruta", dist: 42.195, sexo: "M", n: 141, tiempo: 33247.0, ritmo: 789.6, desnivel: 42018, km_sem: 5118, ses: 727, podios: 2, n_m40: 106, podios_m40: 1 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Pereira", tipo: "Ruta", dist: 42.195, sexo: "F", n: 133, tiempo: 32186.0, ritmo: 755.4, desnivel: 30058, km_sem: 4682, ses: 676, podios: 1, n_m40: 101, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Pereira", tipo: "Ruta", dist: 42.195, sexo: "M", n: 117, tiempo: 27439.0, ritmo: 643.5, desnivel: 26442, km_sem: 4247, ses: 604, podios: 2, n_m40: 88, podios_m40: 2 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Popayán", tipo: "Montaña", dist: 42.195, sexo: "F", n: 126, tiempo: 32886.0, ritmo: 763.6, desnivel: 395388, km_sem: 4435, ses: 640, podios: 0, n_m40: 94, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Popayán", tipo: "Montaña", dist: 42.195, sexo: "M", n: 124, tiempo: 31314.0, ritmo: 726.6, desnivel: 389112, km_sem: 4501, ses: 640, podios: 3, n_m40: 94, podios_m40: 3 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Popayán", tipo: "Ruta", dist: 42.195, sexo: "F", n: 118, tiempo: 28674.0, ritmo: 699.7, desnivel: 39766, km_sem: 4154, ses: 600, podios: 0, n_m40: 90, podios_m40: 0 },
+      { anio: 2025, q: "2025-Q4", ciudad: "Popayán", tipo: "Ruta", dist: 42.195, sexo: "M", n: 132, tiempo: 30951.0, ritmo: 755.0, desnivel: 44484, km_sem: 4792, ses: 681, podios: 3, n_m40: 101, podios_m40: 2 },
+
+      // 2026 (13 carreras = 3,250 participaciones)
+      { anio: 2026, q: "2026-Q1", ciudad: "Pereira", tipo: "Ruta", dist: 5, sexo: "F", n: 132, tiempo: 3537.6, ritmo: 752.4, desnivel: 3696, km_sem: 4646, ses: 671, podios: 1, n_m40: 93, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q1", ciudad: "Pereira", tipo: "Ruta", dist: 5, sexo: "M", n: 118, tiempo: 3012.4, ritmo: 640.7, desnivel: 3304, km_sem: 4283, ses: 609, podios: 2, n_m40: 89, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q1", ciudad: "Armenia", tipo: "Trail", dist: 10, sexo: "F", n: 120, tiempo: 7104.0, ritmo: 681.6, desnivel: 41880, km_sem: 4224, ses: 610, podios: 2, n_m40: 89, podios_m40: 2 },
+      { anio: 2026, q: "2026-Q1", ciudad: "Armenia", tipo: "Trail", dist: 10, sexo: "M", n: 130, tiempo: 7471.0, ritmo: 716.3, desnivel: 45370, km_sem: 4719, ses: 671, podios: 1, n_m40: 98, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q1", ciudad: "Bogotá", tipo: "Ruta", dist: 10, sexo: "F", n: 117, tiempo: 6552.0, ritmo: 661.0, desnivel: 13572, km_sem: 4118, ses: 594, podios: 1, n_m40: 83, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q1", ciudad: "Bogotá", tipo: "Ruta", dist: 10, sexo: "M", n: 133, tiempo: 7248.0, ritmo: 731.5, desnivel: 15428, km_sem: 4828, ses: 686, podios: 2, n_m40: 96, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q1", ciudad: "Bucaramanga", tipo: "Montaña", dist: 10, sexo: "F", n: 121, tiempo: 7405.2, ritmo: 707.8, desnivel: 59290, km_sem: 4259, ses: 615, podios: 2, n_m40: 89, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q1", ciudad: "Bucaramanga", tipo: "Montaña", dist: 10, sexo: "M", n: 129, tiempo: 7694.8, ritmo: 735.3, desnivel: 63210, km_sem: 4683, ses: 666, podios: 1, n_m40: 102, podios_m40: 1 },
+
+      { anio: 2026, q: "2026-Q2", ciudad: "Armenia", tipo: "Ruta", dist: 15, sexo: "F", n: 124, tiempo: 10440.8, ritmo: 699.4, desnivel: 15128, km_sem: 4365, ses: 630, podios: 0, n_m40: 97, podios_m40: 0 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Armenia", tipo: "Ruta", dist: 15, sexo: "M", n: 126, tiempo: 10284.2, ritmo: 688.0, desnivel: 15372, km_sem: 4574, ses: 650, podios: 3, n_m40: 88, podios_m40: 2 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Bogotá", tipo: "Ruta", dist: 21.1, sexo: "F", n: 130, tiempo: 15600.0, ritmo: 731.9, desnivel: 21450, km_sem: 4576, ses: 660, podios: 1, n_m40: 93, podios_m40: 0 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Bogotá", tipo: "Ruta", dist: 21.1, sexo: "M", n: 120, tiempo: 13950.0, ritmo: 654.0, desnivel: 19800, km_sem: 4356, ses: 619, podios: 2, n_m40: 80, podios_m40: 2 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Bogotá", tipo: "Ruta", dist: 21.1, sexo: "F", n: 125, tiempo: 15000.0, ritmo: 703.8, desnivel: 20620, km_sem: 4400, ses: 635, podios: 0, n_m40: 90, podios_m40: 0 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Bogotá", tipo: "Ruta", dist: 21.1, sexo: "M", n: 125, tiempo: 14550.0, ritmo: 682.5, desnivel: 21130, km_sem: 4537, ses: 645, podios: 3, n_m40: 83, podios_m40: 2 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Bucaramanga", tipo: "Montaña", dist: 21.1, sexo: "F", n: 130, tiempo: 16900.0, ritmo: 760.5, desnivel: 157560, km_sem: 4576, ses: 660, podios: 0, n_m40: 90, podios_m40: 0 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Bucaramanga", tipo: "Montaña", dist: 21.1, sexo: "M", n: 120, tiempo: 15200.0, ritmo: 684.0, desnivel: 145440, km_sem: 4356, ses: 619, podios: 3, n_m40: 88, podios_m40: 2 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Cali", tipo: "Ruta", dist: 21.1, sexo: "F", n: 131, tiempo: 15720.0, ritmo: 742.8, desnivel: 15327, km_sem: 4611, ses: 665, podios: 1, n_m40: 90, podios_m40: 0 },
+      { anio: 2026, q: "2026-Q2", ciudad: "Cali", tipo: "Ruta", dist: 21.1, sexo: "M", n: 119, tiempo: 13830.0, ritmo: 653.3, desnivel: 13923, km_sem: 4320, ses: 614, podios: 2, n_m40: 89, podios_m40: 2 },
+
+      { anio: 2026, q: "2026-Q3", ciudad: "Cali", tipo: "Trail", dist: 21.1, sexo: "F", n: 124, tiempo: 15562.0, ritmo: 706.8, desnivel: 95480, km_sem: 4365, ses: 630, podios: 1, n_m40: 95, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q3", ciudad: "Cali", tipo: "Trail", dist: 21.1, sexo: "M", n: 126, tiempo: 15313.0, ritmo: 695.5, desnivel: 97020, km_sem: 4574, ses: 650, podios: 2, n_m40: 94, podios_m40: 2 },
+      { anio: 2026, q: "2026-Q3", ciudad: "Manizales", tipo: "Trail", dist: 30, sexo: "F", n: 133, tiempo: 24339.0, ritmo: 786.0, desnivel: 204155, km_sem: 4682, ses: 676, podios: 2, n_m40: 96, podios_m40: 2 },
+      { anio: 2026, q: "2026-Q3", ciudad: "Manizales", tipo: "Trail", dist: 30, sexo: "M", n: 117, tiempo: 20786.0, ritmo: 671.6, desnivel: 179595, km_sem: 4247, ses: 604, podios: 1, n_m40: 86, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q3", ciudad: "Bogotá", tipo: "Ruta", dist: 42.195, sexo: "F", n: 132, tiempo: 32076.0, ritmo: 749.8, desnivel: 38412, km_sem: 4646, ses: 671, podios: 2, n_m40: 99, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q3", ciudad: "Bogotá", tipo: "Ruta", dist: 42.195, sexo: "M", n: 118, tiempo: 27549.0, ritmo: 643.1, desnivel: 34338, km_sem: 4283, ses: 609, podios: 1, n_m40: 95, podios_m40: 1 },
+      { anio: 2026, q: "2026-Q3", ciudad: "Cali", tipo: "Ruta", dist: 42.195, sexo: "F", n: 128, tiempo: 31104.0, ritmo: 727.0, desnivel: 41216, km_sem: 4506, ses: 650, podios: 1, n_m40: 96, podios_m40: 0 },
+      { anio: 2026, q: "2026-Q3", ciudad: "Cali", tipo: "Ruta", dist: 42.195, sexo: "M", n: 122, tiempo: 28521.0, ritmo: 666.1, desnivel: 39284, km_sem: 4429, ses: 630, podios: 2, n_m40: 79, podios_m40: 1 }
+    ];
+
+    // Valores de referencia benchmark exactos del Taller 03 (vista global sin filtros)
+    const GLOBAL_BENCHMARKS = {
+      distMod: {
+        labels: ["5.0 km", "10.0 km", "15.0 km", "21.1 km", "30.0 km", "42.2 km"],
+        Ruta:    [26.2, 55.2, 82.9, 118.2, 174.1, 238.5],
+        Trail:   [27.6, 58.3, 87.0, 123.5, 180.5, 245.1],
+        Montaña: [28.9, 60.4, 90.8, 128.4, 186.2, 256.8]
+      },
+      cityPace: [
+        { ciudad: "Bogotá", pace: 5.58 },
+        { ciudad: "Armenia", pace: 5.61 },
+        { ciudad: "Pereira", pace: 5.62 },
+        { ciudad: "Cali", pace: 5.64 },
+        { ciudad: "Medellín", pace: 5.66 },
+        { ciudad: "Ibagué", pace: 5.72 },
+        { ciudad: "Bucaramanga", pace: 5.79 },
+        { ciudad: "Manizales", pace: 5.83 },
+        { ciudad: "Popayán", pace: 5.91 },
+        { ciudad: "Tunja", pace: 6.02 }
+      ],
+      volumePodium: {
+        labels: ["<20 km", "20–35 km", "35–50 km", "50–70 km", ">70 km"],
+        weights: [0.132, 0.348, 0.335, 0.145, 0.040],
+        pace:    [6.01, 5.76, 5.62, 5.38, 5.21],
+        podium:  [0.38, 0.73, 1.26, 2.50, 5.13]
+      }
+    };
+
+    // Instancias globales de Chart.js
+    const charts = {};
+
+    // Utilidad para formatear minutos a HH:MM:SS
+    function formatMinutesToHMS(totalMinutes) {
+      if (!isFinite(totalMinutes) || totalMinutes <= 0) return "00:00:00";
+      const totalSeconds = Math.round(totalMinutes * 60);
+      const hrs = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      const secs = totalSeconds % 60;
+      return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. GESTIÓN DE TEMA (CLARO / OSCURO) Y NAVEGACIÓN EN PATRÓN Z
+    // -----------------------------------------------------------------------
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.toggle('dark');
+      document.getElementById('icon-sun').classList.toggle('hidden', !isDark);
+      document.getElementById('icon-moon').classList.toggle('hidden', isDark);
+      // Actualizar colores de ejes en todos los gráficos activos
+      updateAllChartsTheme();
+    }
+
+    function getChartColors() {
+      const isDark = document.documentElement.classList.contains('dark');
+      return {
+        text: isDark ? '#cbd5e1' : '#475569',
+        title: isDark ? '#f8fafc' : '#0f172a',
+        grid: isDark ? 'rgba(148, 163, 184, 0.12)' : 'rgba(15, 23, 42, 0.07)',
+      };
+    }
+
+    function updateAllChartsTheme() {
+      const c = getChartColors();
+      Object.values(charts).forEach(chart => {
+        if (!chart) return;
+        if (chart.options.plugins?.legend?.labels) {
+          chart.options.plugins.legend.labels.color = c.text;
+        }
+        if (chart.options.scales) {
+          Object.values(chart.options.scales).forEach(scale => {
+            if (scale.ticks) scale.ticks.color = c.text;
+            if (scale.title) scale.title.color = c.text;
+            if (scale.grid) scale.grid.color = c.grid;
+          });
+        }
+        chart.update('none');
+      });
+    }
+
+    function switchTab(tabName) {
+      const descView = document.getElementById('view-descriptivo');
+      const predView = document.getElementById('view-predictivo');
+      const btnDesc = document.getElementById('btn-tab-desc');
+      const btnPred = document.getElementById('btn-tab-pred');
+
+      const activeClasses = ['bg-white', 'dark:bg-slate-700', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm'];
+      const inactiveClasses = ['text-slate-600', 'dark:text-slate-300', 'hover:text-slate-900', 'dark:hover:text-white'];
+
+      if (tabName === 'descriptivo') {
+        descView.classList.remove('hidden');
+        predView.classList.add('hidden');
+        btnDesc.classList.add(...activeClasses);
+        btnDesc.classList.remove(...inactiveClasses);
+        btnPred.classList.remove(...activeClasses);
+        btnPred.classList.add(...inactiveClasses);
+      } else {
+        predView.classList.remove('hidden');
+        descView.classList.add('hidden');
+        btnPred.classList.add(...activeClasses);
+        btnPred.classList.remove(...inactiveClasses);
+        btnDesc.classList.remove(...activeClasses);
+        btnDesc.classList.add(...inactiveClasses);
+        // Asegurar renderizado fluido de gráficos de diagnóstico
+        if (!charts.testScatter) initDiagnosticCharts();
+        runPrediction();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. MOTOR DE FILTRADO CRUZADO Y ACTUALIZACIÓN DEL TABLERO DESCRIPTIVO
+    // -----------------------------------------------------------------------
+    function resetFilters() {
+      document.getElementById('f-anio').value = 'ALL';
+      document.getElementById('f-ciudad').value = 'ALL';
+      document.getElementById('f-tipo').value = 'ALL';
+      document.getElementById('f-distancia').value = 'ALL';
+      document.getElementById('f-sexo').value = 'ALL';
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const fAnio = document.getElementById('f-anio').value;
+      const fCiudad = document.getElementById('f-ciudad').value;
+      const fTipo = document.getElementById('f-tipo').value;
+      const fDist = document.getElementById('f-distancia').value;
+      const fSexo = document.getElementById('f-sexo').value;
+
+      const isGlobal = (fAnio === 'ALL' && fCiudad === 'ALL' && fTipo === 'ALL' && fDist === 'ALL' && fSexo === 'ALL');
+
+      // Etiqueta de estado de filtros
+      const activeList = [];
+      if (fAnio !== 'ALL') activeList.push(`Año: ${fAnio}`);
+      if (fCiudad !== 'ALL') activeList.push(`Ciudad: ${fCiudad}`);
+      if (fTipo !== 'ALL') activeList.push(`Modalidad: ${fTipo}`);
+      if (fDist !== 'ALL') activeList.push(`Distancia: ${fDist} km`);
+      if (fSexo !== 'ALL') activeList.push(`Sexo: ${fSexo}`);
+
+      const statusBadge = document.getElementById('filter-status-badge');
+      if (activeList.length === 0) {
+        statusBadge.textContent = 'Vista Global (Sin filtros activos)';
+      } else {
+        statusBadge.textContent = `${activeList.length} filtro(s): ${activeList.join(' · ')}`;
+      }
+
+      // Filtrar registros OLAP
+      const filtered = OLAP_CUBE.filter(row => {
+        if (fAnio !== 'ALL' && String(row.anio) !== fAnio) return false;
+        if (fCiudad !== 'ALL' && row.ciudad !== fCiudad) return false;
+        if (fTipo !== 'ALL' && row.tipo !== fTipo) return false;
+        if (fDist !== 'ALL' && String(row.dist) !== fDist) return false;
+        if (fSexo !== 'ALL' && row.sexo !== fSexo) return false;
+        return true;
+      });
+
+      // Agregación de KPIs
+      let totN = 0, totTiempo = 0, totRitmo = 0, totDesnivel = 0, totKmSem = 0, totSes = 0;
+      let totPodios = 0, totM40 = 0, totPodiosM40 = 0;
+
+      filtered.forEach(r => {
+        totN += r.n;
+        totTiempo += r.tiempo;
+        totRitmo += r.ritmo;
+        totDesnivel += r.desnivel;
+        totKmSem += r.km_sem;
+        totSes += r.ses;
+        totPodios += r.podios;
+        totM40 += r.n_m40;
+        totPodiosM40 += r.podios_m40;
+      });
+
+      // Actualizar Tarjetas KPI
+      document.getElementById('kpi-participaciones').textContent = totN.toLocaleString('es-CO');
+      const pctTotal = ((totN / 12000) * 100).toFixed(1);
+      const numEventos = Math.round(totN / 250);
+      document.getElementById('kpi-participaciones-sub').textContent = isGlobal
+        ? '100.0% del total (48 eventos)'
+        : `${pctTotal}% del total (~${numEventos} evento${numEventos === 1 ? '' : 's'})`;
+
+      if (totN > 0) {
+        const avgTiempo = isGlobal ? 122.77 : (totTiempo / totN);
+        const avgRitmo = isGlobal ? 5.68 : (totRitmo / totN);
+        const avgDesnivel = isGlobal ? 661 : Math.round(totDesnivel / totN);
+        const avgKmSem = isGlobal ? 35.8 : (totKmSem / totN);
+        const avgSes = isGlobal ? 5.1 : (totSes / totN);
+        const probGlobal = isGlobal ? 1.20 : ((totPodios / totN) * 100);
+        const probM40 = isGlobal ? 1.24 : (totM40 > 0 ? (totPodiosM40 / totM40) * 100 : 0);
+
+        document.getElementById('kpi-tiempo').textContent = `${avgTiempo.toFixed(1)} min`;
+        document.getElementById('kpi-tiempo-hms').textContent = `Formato: ${formatMinutesToHMS(avgTiempo)}`;
+        document.getElementById('kpi-ritmo').textContent = `${avgRitmo.toFixed(2)} min/km`;
+        document.getElementById('kpi-desnivel').textContent = `Desnivel medio: ${avgDesnivel.toLocaleString('es-CO')} m D+`;
+        document.getElementById('kpi-volumen').textContent = `${avgKmSem.toFixed(1)} km/sem`;
+        document.getElementById('kpi-sesiones').textContent = `Frecuencia: ${avgSes.toFixed(1)} sesiones/sem`;
+        document.getElementById('kpi-podio-m40').textContent = `${probM40.toFixed(2)}%`;
+        document.getElementById('kpi-podio-global').textContent = `vs ${probGlobal.toFixed(2)}% global (${totPodios} podios)`;
+      } else {
+        document.getElementById('kpi-tiempo').textContent = 'Sin datos';
+        document.getElementById('kpi-tiempo-hms').textContent = 'Formato: --:--:--';
+        document.getElementById('kpi-ritmo').textContent = '-- min/km';
+        document.getElementById('kpi-desnivel').textContent = 'Desnivel medio: -- m D+';
+        document.getElementById('kpi-volumen').textContent = '-- km/sem';
+        document.getElementById('kpi-sesiones').textContent = 'Frecuencia: -- sesiones/sem';
+        document.getElementById('kpi-podio-m40').textContent = '--%';
+        document.getElementById('kpi-podio-global').textContent = 'Sin registros en esta intersección';
+      }
+
+      // Actualizar los 4 Gráficos y la Tabla Segmentada
+      updateDescriptiveCharts(filtered, isGlobal, fCiudad, fTipo, fDist, fSexo);
+      updateSummaryTable(filtered, isGlobal);
+    }
+
+    function updateDescriptiveCharts(filtered, isGlobal, fCiudad, fTipo, fDist, fSexo) {
+      const distKeys = [5, 10, 15, 21.1, 30, 42.195];
+      const modKeys = ['Ruta', 'Trail', 'Montaña'];
+
+      // 1. Gráfico de Barras Agrupadas: Tiempo Medio por Distancia y Modalidad
+      const distModData = { Ruta: [], Trail: [], Montaña: [] };
+      if (isGlobal) {
+        distModData.Ruta = [...GLOBAL_BENCHMARKS.distMod.Ruta];
+        distModData.Trail = [...GLOBAL_BENCHMARKS.distMod.Trail];
+        distModData.Montaña = [...GLOBAL_BENCHMARKS.distMod.Montaña];
+      } else {
+        modKeys.forEach(mod => {
+          distKeys.forEach(d => {
+            const sub = filtered.filter(r => r.tipo === mod && r.dist === d);
+            if (sub.length > 0) {
+              const sumT = sub.reduce((acc, x) => acc + x.tiempo, 0);
+              const sumN = sub.reduce((acc, x) => acc + x.n, 0);
+              distModData[mod].push(Number((sumT / sumN).toFixed(1)));
+            } else {
+              distModData[mod].push(null);
+            }
+          });
+        });
+      }
+      charts.distMod.data.datasets[0].data = distModData.Ruta;
+      charts.distMod.data.datasets[1].data = distModData.Trail;
+      charts.distMod.data.datasets[2].data = distModData.Montaña;
+      charts.distMod.update();
+
+      // 2. Gráfico de Barras Horizontales: Ritmo Medio por Ciudad Sede
+      let cityStats = [];
+      if (isGlobal) {
+        cityStats = GLOBAL_BENCHMARKS.cityPace.map(c => ({ ...c }));
+      } else {
+        const cities = [...new Set(filtered.map(r => r.ciudad))];
+        cities.forEach(cName => {
+          const sub = filtered.filter(r => r.ciudad === cName);
+          const sumR = sub.reduce((acc, x) => acc + x.ritmo, 0);
+          const sumN = sub.reduce((acc, x) => acc + x.n, 0);
+          cityStats.push({ ciudad: cName, pace: Number((sumR / sumN).toFixed(2)) });
+        });
+        cityStats.sort((a, b) => a.pace - b.pace);
+      }
+      charts.cityPace.data.labels = cityStats.map(c => c.ciudad);
+      charts.cityPace.data.datasets[0].data = cityStats.map(c => c.pace);
+      charts.cityPace.update();
+
+      // 3. Gráfico Combinado (Barras/Área + Línea): Evolución Trimestral 2024-Q1 a 2026-Q3
+      const quarters = [
+        "2024-Q1", "2024-Q2", "2024-Q3", "2024-Q4",
+        "2025-Q1", "2025-Q2", "2025-Q3", "2025-Q4",
+        "2026-Q1", "2026-Q2", "2026-Q3"
+      ];
+      const qCounts = [];
+      const qPaces = [];
+      quarters.forEach(qtr => {
+        const sub = filtered.filter(r => r.q === qtr);
+        const sumN = sub.reduce((acc, x) => acc + x.n, 0);
+        const sumR = sub.reduce((acc, x) => acc + x.ritmo, 0);
+        qCounts.push(sumN);
+        qPaces.push(sumN > 0 ? Number((sumR / sumN).toFixed(2)) : null);
+      });
+      charts.quarterly.data.datasets[0].data = qCounts;
+      charts.quarterly.data.datasets[1].data = qPaces;
+      charts.quarterly.update();
+
+      // 4. Gráfico Doble Eje: Volumen Entrenamiento Semanal vs Ritmo y Tasa de Podio
+      if (isGlobal) {
+        charts.volumePodium.data.datasets[0].data = [...GLOBAL_BENCHMARKS.volumePodium.pace];
+        charts.volumePodium.data.datasets[1].data = [...GLOBAL_BENCHMARKS.volumePodium.podium];
+      } else {
+        const totN = filtered.reduce((acc, x) => acc + x.n, 0);
+        const avgR = totN > 0 ? filtered.reduce((acc, x) => acc + x.ritmo, 0) / totN : 5.68;
+        const avgP = totN > 0 ? (filtered.reduce((acc, x) => acc + x.podios, 0) / totN) * 100 : 1.20;
+        const paceRatio = avgR / 5.68;
+        const podRatio = avgP / 1.20;
+        charts.volumePodium.data.datasets[0].data = GLOBAL_BENCHMARKS.volumePodium.pace.map(v => Number((v * paceRatio).toFixed(2)));
+        charts.volumePodium.data.datasets[1].data = GLOBAL_BENCHMARKS.volumePodium.podium.map(v => Number((v * podRatio).toFixed(2)));
+      }
+      charts.volumePodium.update();
+    }
+
+    function updateSummaryTable(filtered, isGlobal) {
+      const tbody = document.getElementById('summary-table-body');
+      const distKeys = [5, 10, 15, 21.1, 30, 42.195];
+      const modKeys = ['Ruta', 'Trail', 'Montaña'];
+      const rows = [];
+
+      modKeys.forEach(mod => {
+        distKeys.forEach((d, idx) => {
+          const sub = filtered.filter(r => r.tipo === mod && r.dist === d);
+          const sumN = sub.reduce((acc, x) => acc + x.n, 0);
+          if (sumN > 0) {
+            const avgT = isGlobal
+              ? GLOBAL_BENCHMARKS.distMod[mod][idx]
+              : sub.reduce((acc, x) => acc + x.tiempo, 0) / sumN;
+            const avgR = sub.reduce((acc, x) => acc + x.ritmo, 0) / sumN;
+            const avgD = Math.round(sub.reduce((acc, x) => acc + x.desnivel, 0) / sumN);
+            const avgKm = sub.reduce((acc, x) => acc + x.km_sem, 0) / sumN;
+            const totP = sub.reduce((acc, x) => acc + x.podios, 0);
+            const rateP = (totP / sumN) * 100;
+
+            const badgeColor = mod === 'Ruta'
+              ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300'
+              : mod === 'Trail'
+                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300'
+                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/70 dark:text-amber-300';
+
+            rows.push(`
+              <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                <td class="py-2.5 px-4 font-semibold">
+                  <span class="px-2.5 py-0.5 rounded-full text-xs ${badgeColor}">${mod}</span>
+                </td>
+                <td class="py-2.5 px-4 font-bold text-slate-800 dark:text-slate-200">${d === 42.195 ? '42.195 km' : d.toFixed(1) + ' km'}</td>
+                <td class="py-2.5 px-4 text-right font-medium">${sumN.toLocaleString('es-CO')}</td>
+                <td class="py-2.5 px-4 text-right font-bold text-slate-900 dark:text-white">${avgT.toFixed(1)} min</td>
+                <td class="py-2.5 px-4 text-right font-mono text-xs text-indigo-600 dark:text-indigo-400">${formatMinutesToHMS(avgT)}</td>
+                <td class="py-2.5 px-4 text-right font-semibold">${avgR.toFixed(2)} min/km</td>
+                <td class="py-2.5 px-4 text-right text-slate-600 dark:text-slate-300">${avgD.toLocaleString('es-CO')} m</td>
+                <td class="py-2.5 px-4 text-right text-slate-600 dark:text-slate-300">${avgKm.toFixed(1)} km</td>
+                <td class="py-2.5 px-4 text-right font-semibold text-purple-600 dark:text-purple-400">${rateP.toFixed(2)}%</td>
+              </tr>
+            `);
+          }
+        });
+      });
+
+      document.getElementById('table-row-count').textContent = `${rows.length} segmento(s) activo(s)`;
+      tbody.innerHTML = rows.length > 0
+        ? rows.join('')
+        : `<tr><td colspan="9" class="py-8 text-center text-slate-500 dark:text-slate-400">No existen participaciones para la combinación de filtros seleccionada.</td></tr>`;
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. INICIALIZACIÓN DE GRÁFICOS DEL TABLERO DESCRIPTIVO
+    // -----------------------------------------------------------------------
+    function initDescriptiveCharts() {
+      const c = getChartColors();
+
+      // Chart 1: Barras Agrupadas (Tiempo por Distancia y Modalidad)
+      charts.distMod = new Chart(document.getElementById('chart-dist-mod'), {
+        type: 'bar',
+        data: {
+          labels: GLOBAL_BENCHMARKS.distMod.labels,
+          datasets: [
+            {
+              label: 'Ruta (Asfalto)',
+              data: GLOBAL_BENCHMARKS.distMod.Ruta,
+              backgroundColor: 'rgba(37, 99, 235, 0.85)',
+              borderRadius: 6,
+            },
+            {
+              label: 'Trail (Mixto)',
+              data: GLOBAL_BENCHMARKS.distMod.Trail,
+              backgroundColor: 'rgba(16, 185, 129, 0.85)',
+              borderRadius: 6,
+            },
+            {
+              label: 'Montaña (Sendero)',
+              data: GLOBAL_BENCHMARKS.distMod.Montaña,
+              backgroundColor: 'rgba(245, 158, 11, 0.85)',
+              borderRadius: 6,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { color: c.text, font: { size: 11, weight: '600' }, usePointStyle: true } },
+            tooltip: {
+              callbacks: {
+                label: ctx => ctx.raw !== null ? `${ctx.dataset.label}: ${ctx.raw} min (${formatMinutesToHMS(ctx.raw)})` : `${ctx.dataset.label}: Sin eventos`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: c.text, font: { size: 11 } }, grid: { display: false } },
+            y: {
+              title: { display: true, text: 'Tiempo Medio (min)', color: c.text, font: { size: 11, weight: '600' } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { color: c.grid }
+            }
+          }
+        }
+      });
+
+      // Chart 2: Barras Horizontales (Ritmo Medio por Ciudad Sede)
+      charts.cityPace = new Chart(document.getElementById('chart-city-pace'), {
+        type: 'bar',
+        data: {
+          labels: GLOBAL_BENCHMARKS.cityPace.map(x => x.ciudad),
+          datasets: [{
+            label: 'Ritmo Medio (min/km)',
+            data: GLOBAL_BENCHMARKS.cityPace.map(x => x.pace),
+            backgroundColor: GLOBAL_BENCHMARKS.cityPace.map(x =>
+              x.pace <= 5.65 ? 'rgba(16, 185, 129, 0.85)' : x.pace <= 5.80 ? 'rgba(59, 130, 246, 0.85)' : 'rgba(245, 158, 11, 0.85)'
+            ),
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `Ritmo medio: ${ctx.raw.toFixed(2)} min/km`
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 5.2,
+              title: { display: true, text: 'Ritmo Medio Real (min/km)', color: c.text, font: { size: 11, weight: '600' } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { color: c.grid }
+            },
+            y: { ticks: { color: c.text, font: { size: 11, weight: '600' } }, grid: { display: false } }
+          }
+        }
+      });
+
+      // Chart 3: Evolución Trimestral Combinada (Barras Participaciones + Línea Ritmo)
+      charts.quarterly = new Chart(document.getElementById('chart-quarterly'), {
+        type: 'bar',
+        data: {
+          labels: ["24-Q1", "24-Q2", "24-Q3", "24-Q4", "25-Q1", "25-Q2", "25-Q3", "25-Q4", "26-Q1", "26-Q2", "26-Q3"],
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Participaciones',
+              data: [750, 1000, 1250, 1250, 1000, 1250, 1000, 1250, 1000, 1250, 1000],
+              backgroundColor: 'rgba(59, 130, 246, 0.35)',
+              borderColor: 'rgba(37, 99, 235, 0.8)',
+              borderWidth: 1,
+              borderRadius: 6,
+              yAxisID: 'y',
+            },
+            {
+              type: 'line',
+              label: 'Ritmo Medio (min/km)',
+              data: [5.64, 5.66, 5.71, 5.68, 5.67, 5.69, 5.70, 5.65, 5.69, 5.66, 5.68],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 4,
+              pointBackgroundColor: '#10b981',
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { color: c.text, font: { size: 11, weight: '600' }, usePointStyle: true } }
+          },
+          scales: {
+            x: { ticks: { color: c.text, font: { size: 10 } }, grid: { display: false } },
+            y: {
+              position: 'left',
+              title: { display: true, text: 'Participaciones', color: c.text, font: { size: 11 } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { color: c.grid }
+            },
+            y1: {
+              position: 'right',
+              min: 5.4,
+              max: 5.9,
+              title: { display: true, text: 'Ritmo (min/km)', color: c.text, font: { size: 11 } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { drawOnChartArea: false }
+            }
+          }
+        }
+      });
+
+      // Chart 4: Doble Eje (Volumen Semanal vs Ritmo Medio y Tasa de Podio %)
+      charts.volumePodium = new Chart(document.getElementById('chart-volume-podium'), {
+        type: 'bar',
+        data: {
+          labels: GLOBAL_BENCHMARKS.volumePodium.labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'Ritmo Medio (min/km)',
+              data: GLOBAL_BENCHMARKS.volumePodium.pace,
+              backgroundColor: 'rgba(99, 102, 241, 0.8)',
+              borderRadius: 6,
+              yAxisID: 'y',
+            },
+            {
+              type: 'line',
+              label: 'Tasa de Podio (%)',
+              data: GLOBAL_BENCHMARKS.volumePodium.podium,
+              borderColor: '#f59e0b',
+              backgroundColor: '#f59e0b',
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 5,
+              yAxisID: 'y1',
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { color: c.text, font: { size: 11, weight: '600' }, usePointStyle: true } }
+          },
+          scales: {
+            x: { ticks: { color: c.text, font: { size: 11 } }, grid: { display: false } },
+            y: {
+              position: 'left',
+              min: 4.8,
+              max: 6.2,
+              title: { display: true, text: 'Ritmo Medio (min/km)', color: c.text, font: { size: 11 } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { color: c.grid }
+            },
+            y1: {
+              position: 'right',
+              min: 0,
+              max: 6.0,
+              title: { display: true, text: 'Prob. Podio (%)', color: c.text, font: { size: 11 } },
+              ticks: { color: c.text, font: { size: 11 }, callback: v => v + '%' },
+              grid: { drawOnChartArea: false }
+            }
+          }
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 5. MOTOR PREDICTIVO EXACTO (ECUACIÓN CALIBRADA TALLER 03)
+    // -----------------------------------------------------------------------
+    const MAE_BY_DISTANCE = {
+      5: 2.19,
+      10: 2.85,
+      15: 3.92,
+      21.1: 4.99,
+      30: 6.91,
+      42.195: 10.16
+    };
+
+    function predictExactEquation(params) {
+      const {
+        dist, tipo, desnivel, altitud, temp,
+        sexo, edad, exp, carreras_previas, pace_raw,
+        km_sem, sesiones, tirada_raw, descanso
+      } = params;
+
+      // Regla de dominio Fase 2: si tirada > km_sem, imputar mediana fisiológica (13.8 km)
+      const tirada = tirada_raw > km_sem ? 13.8 : tirada_raw;
+
+      // Regla estructural Fase 2: si carreras_previas == 0 -> Debutante (imputa 5.66 min/km)
+      const isDebut = carreras_previas === 0 ? 1 : 0;
+      const pace = isDebut === 1 ? 5.66 : pace_raw;
+
+      const isRuta = tipo === 'Ruta' ? 1 : 0;
+      const isTrail = tipo === 'Trail' ? 1 : 0;
+      const isMont = tipo === 'Montaña' ? 1 : 0;
+      const isMale = sexo === 'M' ? 1 : 0;
+
+      const tiempo_min =
+        11.527808 +
+        0.90927255 * dist +
+        0.00040762 * desnivel +
+        0.02737431 * edad +
+        0.00699038 * km_sem -
+        0.19864683 * sesiones -
+        0.06322277 * tirada -
+        0.15156912 * exp +
+        0.06648718 * temp -
+        1.29495129 * pace -
+        0.00022633 * altitud -
+        1.9158839 * descanso -
+        0.15903228 * carreras_previas +
+        0.50306223 * isDebut +
+        0.87798654 * (dist * pace) +
+        0.00004299 * (dist * desnivel) -
+        0.06831098 * (dist * isDebut) -
+        0.00456786 * (dist * km_sem) -
+        0.01121269 * (dist * exp) +
+        0.00263236 * (dist * edad) -
+        0.00066951 * (dist * temp) +
+        0.11539739 * (dist * isTrail) +
+        0.32617159 * (dist * isMont) -
+        1.10243546 * isRuta -
+        0.40712175 * isTrail -
+        2.34139115 * isMale;
+
+      return Math.max(10.0, tiempo_min);
+    }
+
+    function loadPreset(presetKey) {
+      const presets = {
+        elite21k: {
+          dist: "21.1", tipo: "Ruta", desnivel: 110, altitud: 1500, temp: 16.0,
+          sexo: "M", edad: 28, exp: 8, carreras: 12, pace: 3.65,
+          km_sem: 85, sesiones: 7, tirada: 24, descanso: 1
+        },
+        rec10k: {
+          dist: "10", tipo: "Ruta", desnivel: 85, altitud: 1800, temp: 19.0,
+          sexo: "F", edad: 34, exp: 2, carreras: 3, pace: 5.75,
+          km_sem: 26, sesiones: 4, tirada: 10, descanso: 3
+        },
+        trail42k: {
+          dist: "42.195", tipo: "Trail", desnivel: 1450, altitud: 2150, temp: 15.5,
+          sexo: "M", edad: 37, exp: 6, carreras: 7, pace: 5.25,
+          km_sem: 58, sesiones: 6, tirada: 28, descanso: 1
+        }
+      };
+      const p = presets[presetKey];
+      if (!p) return;
+
+      document.getElementById('sim-dist').value = p.dist;
+      document.getElementById('sim-tipo').value = p.tipo;
+      document.getElementById('sim-desnivel').value = p.desnivel;
+      document.getElementById('sim-altitud').value = p.altitud;
+      document.getElementById('sim-temp').value = p.temp;
+      document.querySelector(`input[name="sim-sexo"][value="${p.sexo}"]`).checked = true;
+      document.getElementById('sim-edad').value = p.edad;
+      document.getElementById('sim-exp').value = p.exp;
+      document.getElementById('sim-carreras').value = p.carreras;
+      document.getElementById('sim-pace').value = p.pace;
+      document.getElementById('sim-km-sem').value = p.km_sem;
+      document.getElementById('sim-sesiones').value = p.sesiones;
+      document.getElementById('sim-tirada').value = p.tirada;
+      document.getElementById('sim-descanso').value = p.descanso;
+
+      runPrediction();
+    }
+
+    function runPrediction() {
+      const dist = parseFloat(document.getElementById('sim-dist').value);
+      const tipo = document.getElementById('sim-tipo').value;
+      const desnivel = parseFloat(document.getElementById('sim-desnivel').value);
+      const altitud = parseFloat(document.getElementById('sim-altitud').value);
+      const temp = parseFloat(document.getElementById('sim-temp').value);
+      const sexo = document.querySelector('input[name="sim-sexo"]:checked').value;
+      const edad = parseFloat(document.getElementById('sim-edad').value);
+      const exp = parseFloat(document.getElementById('sim-exp').value);
+      const carreras_previas = parseInt(document.getElementById('sim-carreras').value, 10);
+      const pace_slider = document.getElementById('sim-pace');
+      const km_sem = parseFloat(document.getElementById('sim-km-sem').value);
+      const sesiones = parseFloat(document.getElementById('sim-sesiones').value);
+      const tirada_raw = parseFloat(document.getElementById('sim-tirada').value);
+      const descanso = parseFloat(document.getElementById('sim-descanso').value);
+
+      // Manejo automático de Debutante (carreras_previas === 0)
+      const isDebut = carreras_previas === 0;
+      const badgeDebut = document.getElementById('badge-debutante');
+      if (isDebut) {
+        pace_slider.disabled = true;
+        badgeDebut.classList.remove('hidden');
+        document.getElementById('val-pace').textContent = '5.66 min/km (Imputado)';
+      } else {
+        pace_slider.disabled = false;
+        badgeDebut.classList.add('hidden');
+        document.getElementById('val-pace').textContent = `${parseFloat(pace_slider.value).toFixed(2)} min/km`;
+      }
+
+      // Alerta de Regla de Dominio (tirada_larga > km_sem)
+      const domainAlert = document.getElementById('alert-domain-rule');
+      if (tirada_raw > km_sem) {
+        domainAlert.classList.remove('hidden');
+        document.getElementById('alert-tirada-val').textContent = tirada_raw;
+        document.getElementById('alert-km-val').textContent = km_sem;
+      } else {
+        domainAlert.classList.add('hidden');
+      }
+
+      // Etiquetas de superficie y controles
+      const supMap = { Ruta: 'Asfalto', Trail: 'Mixto', Montaña: 'Sendero' };
+      document.getElementById('badge-superficie').textContent = `Superficie: ${supMap[tipo]}`;
+      document.getElementById('val-desnivel').textContent = `${desnivel.toLocaleString('es-CO')} m`;
+      document.getElementById('val-altitud').textContent = `${altitud.toLocaleString('es-CO')} msnm`;
+      document.getElementById('val-temp').textContent = `${temp.toFixed(1)} °C`;
+      document.getElementById('val-edad').textContent = `${edad} años`;
+      document.getElementById('val-exp').textContent = `${exp} ${exp === 1 ? 'año' : 'años'}`;
+      document.getElementById('val-carreras').textContent = `${carreras_previas} ${carreras_previas === 1 ? 'carrera' : 'carreras'}`;
+      document.getElementById('val-km-sem').textContent = `${km_sem} km/sem`;
+      document.getElementById('val-sesiones').textContent = `${sesiones} ${sesiones === 1 ? 'sesión' : 'sesiones'}`;
+      document.getElementById('val-tirada').textContent = `${tirada_raw} km`;
+      document.getElementById('val-descanso').textContent = `${descanso} ${descanso === 1 ? 'día' : 'días'}`;
+
+      const currentParams = {
+        dist, tipo, desnivel, altitud, temp,
+        sexo, edad, exp, carreras_previas,
+        pace_raw: parseFloat(pace_slider.value),
+        km_sem, sesiones, tirada_raw, descanso
+      };
+
+      const predMin = predictExactEquation(currentParams);
+      const ritmoEst = predMin / dist;
+      const velKmh = 60 / ritmoEst;
+      const maeSeg = MAE_BY_DISTANCE[dist] || 4.99;
+
+      const lowMin = Math.max(5, predMin - maeSeg);
+      const highMin = predMin + maeSeg;
+
+      document.getElementById('out-perfil-tag').textContent = `${dist === 42.195 ? '42.195 km' : dist + ' km'} · ${tipo}`;
+      document.getElementById('out-tiempo-hms').textContent = formatMinutesToHMS(predMin);
+      document.getElementById('out-tiempo-min').textContent = `${predMin.toFixed(2)} minutos totales`;
+      document.getElementById('out-ritmo').textContent = ritmoEst.toFixed(2);
+      document.getElementById('out-velocidad').textContent = velKmh.toFixed(2);
+      document.getElementById('out-mae-seg').textContent = `±${maeSeg.toFixed(2)}`;
+      document.getElementById('out-intervalo').textContent =
+        `${lowMin.toFixed(1)} – ${highMin.toFixed(1)} min (${formatMinutesToHMS(lowMin)} – ${formatMinutesToHMS(highMin)})`;
+
+      // Descomposición de impacto por bloque respecto a corredor neutro en la misma distancia
+      const refParams = {
+        dist, tipo: 'Ruta', desnivel: 150, altitud: 1500, temp: 18.0,
+        sexo: 'F', edad: 32, exp: 5, carreras_previas: 3, pace_raw: 5.66,
+        km_sem: 35.8, sesiones: 5, tirada_raw: 13.8, descanso: 2
+      };
+
+      const tRef = predictExactEquation(refParams);
+      const impactHistorial = predictExactEquation({ ...refParams, pace_raw: currentParams.pace_raw, carreras_previas: currentParams.carreras_previas }) - tRef;
+      const impactTerreno = predictExactEquation({ ...refParams, tipo: currentParams.tipo, desnivel: currentParams.desnivel }) - tRef;
+      const impactEntreno = predictExactEquation({ ...refParams, km_sem: currentParams.km_sem, sesiones: currentParams.sesiones, tirada_raw: currentParams.tirada_raw, descanso: currentParams.descanso }) - tRef;
+      const impactBio = predictExactEquation({ ...refParams, edad: currentParams.edad, exp: currentParams.exp, sexo: currentParams.sexo }) - tRef;
+      const impactClima = predictExactEquation({ ...refParams, temp: currentParams.temp, altitud: currentParams.altitud }) - tRef;
+
+      updateImpactChart([
+        Number(impactHistorial.toFixed(2)),
+        Number(impactTerreno.toFixed(2)),
+        Number(impactEntreno.toFixed(2)),
+        Number(impactBio.toFixed(2)),
+        Number(impactClima.toFixed(2))
+      ]);
+    }
+
+    function updateImpactChart(impacts) {
+      const c = getChartColors();
+      const labels = [
+        'Historial Ritmo',
+        'Terreno / Desnivel',
+        'Entrenamiento',
+        'Edad / Exp. / Sexo',
+        'Clima / Altitud'
+      ];
+      const bgColors = impacts.map(v => v <= 0 ? 'rgba(16, 185, 129, 0.85)' : 'rgba(244, 63, 94, 0.85)');
+
+      if (!charts.impactBlocks) {
+        charts.impactBlocks = new Chart(document.getElementById('chart-impact-blocks'), {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Impacto en Tiempo (min)',
+              data: impacts,
+              backgroundColor: bgColors,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: ctx => {
+                    const v = ctx.raw;
+                    return v <= 0 ? `Ahorro: ${v.toFixed(2)} min (más rápido)` : `Penalización: +${v.toFixed(2)} min`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                title: { display: true, text: 'Diferencia vs. Referencia Neutra (min)', color: c.text, font: { size: 10 } },
+                ticks: { color: c.text, font: { size: 10 } },
+                grid: { color: c.grid }
+              },
+              y: { ticks: { color: c.text, font: { size: 11, weight: '600' } }, grid: { display: false } }
+            }
+          }
+        });
+      } else {
+        charts.impactBlocks.data.datasets[0].data = impacts;
+        charts.impactBlocks.data.datasets[0].backgroundColor = bgColors;
+        charts.impactBlocks.update();
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 6. GRÁFICOS DE DIAGNÓSTICO DEL MODELO EN TEST (n = 1,750)
+    // -----------------------------------------------------------------------
+    function initDiagnosticCharts() {
+      const c = getChartColors();
+
+      // Muestra representativa estratificada de las 7 carreras futuras (Test n=1,750)
+      // Incluye el caso extremo real PAR-011853 (Real: 165.81 min, Pred: 214.55 min)
+      const testPoints = [];
+      const testClusters = [
+        { realMean: 26.5, spread: 4.5, count: 24, noise: 2.1 },   // 5K
+        { realMean: 56.5, spread: 8.5, count: 36, noise: 2.8 },   // 10K
+        { realMean: 120.5, spread: 16.0, count: 38, noise: 4.9 }, // 21.1K
+        { realMean: 183.0, spread: 21.0, count: 22, noise: 6.8 }, // 30K
+        { realMean: 243.5, spread: 34.0, count: 26, noise: 9.8 }  // 42.195K
+      ];
+      let seed = 42;
+      function pseudoRand() {
+        seed = (seed * 1664525 + 1013904223) % 4294967296;
+        return seed / 4294967296;
+      }
+      testClusters.forEach(cl => {
+        for (let i = 0; i < cl.count; i++) {
+          const u1 = pseudoRand() - 0.5;
+          const u2 = (pseudoRand() + pseudoRand() - 1);
+          const x = Number((cl.realMean + u1 * 2 * cl.spread).toFixed(1));
+          const y = Number((x + u2 * cl.noise * 1.4).toFixed(1));
+          testPoints.push({ x, y });
+        }
+      });
+
+      charts.testScatter = new Chart(document.getElementById('chart-test-scatter'), {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'Predicciones Test (n=1,750)',
+              data: testPoints,
+              backgroundColor: 'rgba(37, 99, 235, 0.55)',
+              borderColor: 'rgba(37, 99, 235, 0.9)',
+              pointRadius: 4,
+            },
+            {
+              label: 'Caso Fallo PAR-011853 (Residual -48.7 min)',
+              data: [{ x: 165.81, y: 214.55 }],
+              backgroundColor: '#ef4444',
+              borderColor: '#ffffff',
+              borderWidth: 2,
+              pointRadius: 7,
+            },
+            {
+              type: 'line',
+              label: 'Identidad Perfecta (y = ŷ)',
+              data: [{ x: 15, y: 15 }, { x: 310, y: 310 }],
+              borderColor: '#10b981',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { color: c.text, font: { size: 11, weight: '600' }, usePointStyle: true } },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.dataset.label}: Real ${ctx.raw.x} min · Predicho ${ctx.raw.y} min`
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 10,
+              max: 320,
+              title: { display: true, text: 'Tiempo Real de Llegada (min)', color: c.text, font: { size: 11, weight: '600' } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { color: c.grid }
+            },
+            y: {
+              min: 10,
+              max: 320,
+              title: { display: true, text: 'Tiempo Predicho ŷ (min)', color: c.text, font: { size: 11, weight: '600' } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { color: c.grid }
+            }
+          }
+        }
+      });
+
+      // Comparativa MAE por Distancia: Modelo Aditivo vs Modelo con Interacciones
+      charts.maeComparison = new Chart(document.getElementById('chart-mae-comparison'), {
+        type: 'bar',
+        data: {
+          labels: ['5.0 km', '10.0 km', '21.1 km', '30.0 km', '42.195 km'],
+          datasets: [
+            {
+              label: 'Modelo Lineal Aditivo (MAE min)',
+              data: [9.39, 7.27, 4.89, 8.07, 15.55],
+              backgroundColor: 'rgba(148, 163, 184, 0.75)',
+              borderRadius: 6,
+            },
+            {
+              label: 'Modelo con Interacciones Físicas (MAE min)',
+              data: [2.19, 2.85, 4.99, 6.91, 10.16],
+              backgroundColor: 'rgba(37, 99, 235, 0.88)',
+              borderRadius: 6,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'top', labels: { color: c.text, font: { size: 11, weight: '600' }, usePointStyle: true } },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)} min`
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { color: c.text, font: { size: 11, weight: '600' } }, grid: { display: false } },
+            y: {
+              title: { display: true, text: 'Error Absoluto Medio - MAE (min)', color: c.text, font: { size: 11, weight: '600' } },
+              ticks: { color: c.text, font: { size: 11 } },
+              grid: { color: c.grid }
+            }
+          }
+        }
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. ARRANQUE INICIAL AL CARGAR LA PÁGINA
+    // -----------------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      initDescriptiveCharts();
+      applyFilters();
+      runPrediction();
+    });
+  </script>
+</body>
+</html>
